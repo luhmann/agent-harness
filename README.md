@@ -125,6 +125,7 @@ agent-harness/
 │   ├── attach-agent.sh      # Attach to parallel agent session
 │   ├── kill-agent.sh        # Stop and cleanup parallel agents
 │   ├── logs-agent.sh        # View parallel agent logs
+│   ├── init-agent-config.sh # Generate setup/teardown templates
 │   ├── install.sh           # Install commands globally
 │   ├── attach.sh            # Direct shell access to container
 │   ├── cleanup.sh           # Stop/remove container and volumes
@@ -515,6 +516,254 @@ git push origin --delete <branch-name>
 - Cannot checkout the same branch in multiple worktrees
 - Worktrees share git configuration and hooks
 - Container names must be unique (feature names must differ)
+
+### Repository-Specific Setup and Teardown
+
+Each repository can optionally define automated setup and teardown scripts that run when spawning and killing agents. This is perfect for:
+- Creating isolated databases per worktree
+- Importing database dumps automatically
+- Starting required services (Redis, message queues, etc.)
+- Running migrations and seed data
+- Cleaning up resources when done
+
+#### Configuration Files
+
+Create a `.agent-harness` directory in your project with two optional scripts:
+
+```
+your-project/
+├── .agent-harness/
+│   ├── setup.sh      # Runs on spawn-agent (optional)
+│   └── teardown.sh   # Runs on kill-agent (optional)
+├── src/
+└── ...
+```
+
+#### Generate Templates
+
+Use the template generator to create example files:
+
+```bash
+cd ~/my-project
+init-agent-config postgres  # PostgreSQL template
+init-agent-config mysql     # MySQL template
+init-agent-config redis     # Redis template
+init-agent-config minimal   # Minimal template with comments
+init-agent-config custom    # Blank template
+```
+
+Or run without arguments for an interactive menu:
+```bash
+init-agent-config
+```
+
+#### Environment Variables
+
+Both scripts receive these environment variables:
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `FEATURE_NAME` | `auth` | Feature/agent name |
+| `BRANCH_NAME` | `feature/auth` | Git branch |
+| `WORKTREE_PATH` | `/workspace` | Path to worktree (inside container) |
+| `PROJECT_NAME` | `myapp` | Project name from git |
+| `DB_NAME` | `myapp_auth` | Auto-generated unique DB name |
+| `AGENT_TYPE` | `claude` or `codex` | Agent type |
+
+#### Example: PostgreSQL with Dump Import
+
+**`.agent-harness/setup.sh`:**
+```bash
+#!/bin/bash
+set -e
+
+echo "Setting up database: $DB_NAME"
+
+# Find latest dump by date in filename (e.g., dg-stage-prod-2025-10-16.sql)
+LATEST_DUMP=$(ls dumps/*.sql 2>/dev/null | \
+    sed 's/.*-\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)\.sql/\1 &/' | \
+    sort -r | \
+    head -1 | \
+    cut -d' ' -f2)
+
+if [ -z "$LATEST_DUMP" ]; then
+    echo "❌ No dump files found in dumps/"
+    exit 1
+fi
+
+echo "→ Found dump: $(basename $LATEST_DUMP)"
+
+# Create database on host
+createdb "$DB_NAME" -h host.docker.internal
+
+# Import dump
+psql -h host.docker.internal -d "$DB_NAME" -f "$LATEST_DUMP" -q
+
+# Run migrations
+export DATABASE_URL="postgresql://user:pass@host.docker.internal:5432/$DB_NAME"
+npm run migrate:latest
+
+# Update .mise.toml with connection string
+cat >> .mise.toml << EOF
+
+[env]
+DATABASE_URL = "$DATABASE_URL"
+DB_NAME = "$DB_NAME"
+EOF
+
+echo "✓ Setup complete"
+```
+
+**`.agent-harness/teardown.sh`:**
+```bash
+#!/bin/bash
+
+echo "Cleaning up database: $DB_NAME"
+dropdb "$DB_NAME" -h host.docker.internal --if-exists
+echo "✓ Cleanup complete"
+```
+
+#### Example: Redis per Worktree
+
+**`.agent-harness/setup.sh`:**
+```bash
+#!/bin/bash
+set -e
+
+echo "Starting Redis for: $FEATURE_NAME"
+
+# Start Redis container
+docker run -d \
+    --name "redis-$FEATURE_NAME" \
+    -p 0:6379 \
+    redis:7-alpine
+
+# Get assigned port
+REDIS_PORT=$(docker port "redis-$FEATURE_NAME" 6379 | cut -d':' -f2)
+
+# Update environment
+cat >> .mise.toml << EOF
+
+[env]
+REDIS_URL = "redis://host.docker.internal:$REDIS_PORT"
+EOF
+
+echo "✓ Redis ready at port $REDIS_PORT"
+```
+
+**`.agent-harness/teardown.sh`:**
+```bash
+#!/bin/bash
+
+echo "Stopping Redis: redis-$FEATURE_NAME"
+docker stop "redis-$FEATURE_NAME" 2>/dev/null || true
+docker rm "redis-$FEATURE_NAME" 2>/dev/null || true
+echo "✓ Cleanup complete"
+```
+
+#### Example: Multiple Databases
+
+**`.agent-harness/setup.sh`:**
+```bash
+#!/bin/bash
+set -e
+
+# Create main database
+createdb "${DB_NAME}_main" -h host.docker.internal
+psql -h host.docker.internal -d "${DB_NAME}_main" -f dumps/main.sql -q
+
+# Create analytics database
+createdb "${DB_NAME}_analytics" -h host.docker.internal
+psql -h host.docker.internal -d "${DB_NAME}_analytics" -f dumps/analytics.sql -q
+
+# Update environment
+cat >> .mise.toml << EOF
+
+[env]
+MAIN_DB_URL = "postgresql://user:pass@host.docker.internal:5432/${DB_NAME}_main"
+ANALYTICS_DB_URL = "postgresql://user:pass@host.docker.internal:5432/${DB_NAME}_analytics"
+EOF
+
+echo "✓ Setup complete"
+```
+
+#### Execution Flow
+
+**When spawning an agent (`spawn-agent`):**
+1. Creates git worktree
+2. Starts Docker container
+3. **Checks for `.agent-harness/setup.sh`**
+4. If exists, runs setup script with environment variables
+5. On failure: Runs teardown script, cleans up, exits
+6. On success: Continues with agent launch
+
+**When killing an agent (`kill-agent`):**
+1. **Checks for `.agent-harness/teardown.sh`**
+2. If exists, runs teardown script with environment variables
+3. Errors are logged but don't block removal
+4. Stops container
+5. Optionally removes worktree
+
+#### Safety Features
+
+- **Setup failures are caught**: If setup fails, teardown runs automatically and everything is cleaned up
+- **Skip teardown flag**: Use `--skip-teardown` to bypass teardown script
+  ```bash
+  kill-agent auth --skip-teardown
+  ```
+- **Teardown errors don't block**: If teardown fails, removal continues anyway
+- **Runs inside container**: Scripts have access to mise, project dependencies, and can connect to host services
+
+#### Tips
+
+**Finding Latest Dumps:**
+```bash
+# By date in filename (recommended)
+LATEST=$(ls dumps/*-2025-*.sql | sed 's/.*\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\).*/\1 &/' | sort -r | head -1 | cut -d' ' -f2)
+
+# By file modification time
+LATEST=$(ls -t dumps/*.sql | head -1)
+
+# With compression support
+LATEST=$(ls -t dumps/*.sql* | head -1)
+if [[ "$LATEST" == *.gz ]]; then
+    gunzip -c "$LATEST" | psql -h host.docker.internal -d "$DB_NAME"
+fi
+```
+
+**State Files:**
+```bash
+# Save state in setup for use in teardown
+echo "REDIS_CONTAINER=redis-$FEATURE_NAME" > .agent-harness/.state
+
+# Load in teardown
+source .agent-harness/.state
+docker stop $REDIS_CONTAINER
+```
+
+**Error Handling:**
+```bash
+#!/bin/bash
+set -e  # Exit on any error
+
+# Or handle specific errors
+if ! createdb "$DB_NAME" -h host.docker.internal 2>/dev/null; then
+    echo "❌ Failed to create database"
+    exit 1
+fi
+```
+
+#### Committing Configuration
+
+Setup/teardown scripts should be committed to your repository:
+
+```bash
+git add .agent-harness/
+git commit -m "Add agent setup/teardown scripts"
+git push
+```
+
+Now anyone on your team who spawns an agent will automatically get the same environment!
 
 ### Adding More Languages
 
