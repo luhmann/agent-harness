@@ -1,0 +1,124 @@
+# Docker Compose configuration for Claude Code Sandbox
+# Provides secure, isolated environment for autonomous agent operation
+
+services:
+  claude-sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: claude-agent-sandbox
+    hostname: claude-sandbox
+
+    # ========================================================================
+    # Security Configuration
+    # ========================================================================
+
+    # Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Drop all capabilities, add back only what's needed
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN          # Allow changing file ownership
+      - SETUID         # Allow user switching if needed
+      - SETGID         # Allow group switching if needed
+      - DAC_OVERRIDE   # Allow bypassing file permission checks (needed for some tools)
+
+    # ========================================================================
+    # Resource Limits
+    # ========================================================================
+
+    # Memory limit (default: 4GB, configurable via .env)
+    mem_limit: ${MEMORY_LIMIT:-4g}
+
+    # Prevent memory swapping (optional, improves performance)
+    # memswap_limit: ${MEMORY_LIMIT:-4g}
+
+    # CPU limit (default: 2.0 cores, configurable via .env)
+    cpus: ${CPU_LIMIT:-2.0}
+
+    # Limit number of processes (prevent fork bombs)
+    pids_limit: 512
+
+    # ========================================================================
+    # Volume Mounts
+    # ========================================================================
+
+    volumes:
+      # Project files - shared with host
+      - ./projects:/workspace
+
+      # Claude Code authentication and configuration (persistent)
+      - claude-config:/home/claudedev/.claude
+
+      # Mise cache for faster runtime installation (persistent)
+      - mise-cache:/home/claudedev/.local/share/mise/cache
+
+      # Helper scripts (read-only)
+      - ./scripts:/scripts:ro
+
+    # ========================================================================
+    # Environment Variables
+    # ========================================================================
+
+    environment:
+      # Mise configuration
+      - MISE_DATA_DIR=/home/claudedev/.local/share/mise
+      - MISE_CACHE_DIR=/home/claudedev/.local/share/mise/cache
+
+      # Project name (optional)
+      - PROJECT_NAME=${PROJECT_NAME:-sandbox}
+
+      # Claude Code configuration
+      - CLAUDE_CONFIG_DIR=/home/claudedev/.claude
+
+      # Terminal configuration
+      - TERM=xterm-256color
+
+    # ========================================================================
+    # Container Behavior
+    # ========================================================================
+
+    # Keep container running and allow interactive sessions
+    stdin_open: true
+    tty: true
+
+    # Working directory
+    working_dir: /workspace
+
+    # Default command - just keep shell open
+    # Actual Claude Code launch is handled by run-claude.sh
+    command: /bin/bash -c "tail -f /dev/null"
+
+    # Restart policy (no automatic restart for dev environment)
+    restart: "no"
+
+# ============================================================================
+# Named Volumes (persistent data)
+# ============================================================================
+
+volumes:
+  # Stores Claude Code authentication tokens and configuration
+  # Persists across container recreation
+  claude-config:
+    driver: local
+    labels:
+      description: "Claude Code authentication and configuration"
+
+  # Stores mise downloaded runtime binaries
+  # Significantly speeds up subsequent runtime installations
+  mise-cache:
+    driver: local
+    labels:
+      description: "Mise runtime cache"
+
+# ============================================================================
+# Networks (optional - using default bridge)
+# ============================================================================
+# If you want to customize networking or add multiple containers:
+# networks:
+#   claude-net:
+#     driver: bridge

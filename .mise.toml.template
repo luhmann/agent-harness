@@ -1,0 +1,116 @@
+# Mise Runtime Configuration Template
+# Documentation: https://mise.jdx.dev/
+#
+# This file defines which versions of programming languages and tools
+# should be used for this project. Mise will automatically install and
+# activate the specified versions when you work in this directory.
+
+# ============================================================================
+# Tool Versions
+# ============================================================================
+# Specify exact versions or use aliases like "lts", "latest", etc.
+
+[tools]
+
+# Node.js - JavaScript/TypeScript runtime
+# Options: "22", "lts", "20.10.0", etc.
+# Documentation: https://mise.jdx.dev/lang/node.html
+node = "22"
+
+# Python - Python runtime
+# Options: "3.12", "3.11", "3.10.5", etc.
+# Documentation: https://mise.jdx.dev/lang/python.html
+python = "3.12"
+
+# Erlang - Required for Elixir
+# Options: "27", "26", "25.3", etc.
+# Documentation: https://mise.jdx.dev/lang/erlang.html
+erlang = "27"
+
+# Elixir - Functional programming language
+# Options: "1.17", "1.16", "1.15.7", etc.
+# Documentation: https://mise.jdx.dev/lang/elixir.html
+elixir = "1.17"
+
+# ============================================================================
+# Additional Tools (uncomment to enable)
+# ============================================================================
+
+# Go - Go programming language
+# go = "1.22"
+
+# Rust - Rust programming language
+# rust = "1.75"
+
+# Ruby - Ruby programming language
+# ruby = "3.3"
+
+# Java - Java runtime
+# java = "21"
+
+# Deno - JavaScript/TypeScript runtime
+# deno = "latest"
+
+# Bun - JavaScript runtime and toolkit
+# bun = "latest"
+
+# ============================================================================
+# Environment Variables
+# ============================================================================
+# Define project-specific environment variables
+# These will be automatically loaded when working in this directory
+
+[env]
+
+# Example: Set Node environment
+# NODE_ENV = "development"
+
+# Example: Python path configuration
+# PYTHONPATH = "src:lib"
+
+# Example: Custom application settings
+# API_URL = "http://localhost:3000"
+# DEBUG = "true"
+
+# ============================================================================
+# Tasks (Optional)
+# ============================================================================
+# Define project-specific tasks that can be run with `mise run <task>`
+# Documentation: https://mise.jdx.dev/tasks.html
+
+# [tasks.dev]
+# description = "Start development server"
+# run = "npm run dev"
+
+# [tasks.test]
+# description = "Run tests"
+# run = "npm test"
+
+# [tasks.build]
+# description = "Build project"
+# run = "npm run build"
+
+# [tasks.lint]
+# description = "Run linter"
+# run = "npm run lint"
+
+# ============================================================================
+# Notes
+# ============================================================================
+#
+# 1. After modifying this file, mise will automatically install new versions
+#    the next time you enter this directory or run a mise command.
+#
+# 2. To see all installed tools: `mise list`
+#
+# 3. To see available versions for a tool: `mise ls-remote <tool>`
+#    Example: `mise ls-remote node`
+#
+# 4. To upgrade to latest versions: `mise upgrade`
+#
+# 5. You can pin specific versions using full semver:
+#    node = "20.10.0"  # Exact version
+#    node = "20"       # Latest 20.x.x
+#    node = "lts"      # Latest LTS version
+#
+# 6. For more information: https://mise.jdx.dev/configuration.html
