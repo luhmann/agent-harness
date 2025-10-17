@@ -40,6 +40,13 @@ RUN mise use --global node@22 && \
 # Install Claude Code globally via npm
 RUN mise exec node@22 -- npm install -g @anthropic-ai/claude-code
 
+# Install Codex CLI globally via npm
+RUN mise exec node@22 -- npm install -g @openai/codex
+
+# Verify both CLIs are installed
+RUN mise exec node@22 -- claude --version && \
+    mise exec node@22 -- codex --version
+
 # ============================================================================
 # Stage 2: Runtime - Minimal production image
 # ============================================================================
@@ -73,6 +80,7 @@ ENV PATH="/home/claudedev/.local/share/mise/shims:/home/claudedev/.local/bin:/us
 # Create directory structure
 RUN mkdir -p /workspace && \
     mkdir -p /home/claudedev/.claude && \
+    mkdir -p /home/claudedev/.codex && \
     mkdir -p /home/claudedev/.local/share/mise && \
     mkdir -p /home/claudedev/.local/bin && \
     mkdir -p /scripts
@@ -91,6 +99,7 @@ WORKDIR /workspace
 CMD ["/bin/bash"]
 
 # Labels for documentation
-LABEL maintainer="Claude Code Sandbox"
-LABEL description="Hardened Docker sandbox for running Claude Code autonomously with mise-managed runtimes"
-LABEL version="1.0"
+LABEL maintainer="AI Agent Harness"
+LABEL description="Hardened Docker sandbox for running Claude Code and Codex CLI autonomously with mise-managed runtimes"
+LABEL version="1.1"
+LABEL agents="claude-code,codex-cli"

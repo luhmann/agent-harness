@@ -1,5 +1,5 @@
 #!/bin/bash
-# cleanup.sh - Cleanup Claude Code sandbox resources
+# cleanup.sh - Cleanup AI Agent Harness resources
 #
 # This script can:
 # 1. Stop the container
@@ -26,7 +26,7 @@ if [ "$1" == "--full" ] || [ "$1" == "-f" ]; then
     FULL_CLEANUP=true
 fi
 
-echo -e "${BLUE}=== Claude Code Sandbox Cleanup ===${NC}"
+echo -e "${BLUE}=== AI Agent Harness Cleanup ===${NC}"
 echo ""
 
 # ============================================================================
@@ -66,6 +66,7 @@ if [ "$FULL_CLEANUP" = true ]; then
     echo -e "${RED}This will remove:${NC}"
     echo -e "${RED}  - Container and all its data${NC}"
     echo -e "${RED}  - Claude Code authentication (you'll need to login again)${NC}"
+    echo -e "${RED}  - Codex CLI authentication (you'll need to login again)${NC}"
     echo -e "${RED}  - Mise cache (runtimes will be re-downloaded)${NC}"
     echo -e "${RED}  - Docker image${NC}"
     echo ""
@@ -125,7 +126,7 @@ if [ "$FULL_CLEANUP" = true ]; then
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     echo -e "${BLUE}To rebuild the environment:${NC}"
-    echo -e "  ${GREEN}./scripts/run-claude.sh${NC}"
+    echo -e "  ${GREEN}./scripts/run-agent.sh${NC}"
     echo ""
 
 else
@@ -137,7 +138,7 @@ else
     echo -e "${BLUE}Authentication and cache volumes are preserved.${NC}"
     echo ""
     echo -e "${BLUE}To restart:${NC}"
-    echo -e "  ${GREEN}./scripts/run-claude.sh${NC}"
+    echo -e "  ${GREEN}./scripts/run-agent.sh${NC}"
     echo ""
     echo -e "${BLUE}For full cleanup (remove all data):${NC}"
     echo -e "  ${YELLOW}./scripts/cleanup.sh --full${NC}"

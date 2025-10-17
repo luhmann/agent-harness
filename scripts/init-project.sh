@@ -150,24 +150,33 @@ echo -e "${BLUE}→ Creating README.md...${NC}"
 cat > README.md << EOF
 # $PROJECT_NAME
 
-This project runs in the Claude Code Docker sandbox.
+This project runs in the AI Agent Harness Docker sandbox.
 
 ## Getting Started
 
-This project is configured to run in an isolated Docker environment with Claude Code in autonomous (yolo) mode.
+This project is configured to run in an isolated Docker environment with AI coding agents in autonomous mode.
 
-### Running Claude Code
+### Running an AI Agent
 
 From the repository root, run:
 
 \`\`\`bash
-./scripts/run-claude.sh $PROJECT_NAME
+./scripts/run-agent.sh $PROJECT_NAME
 \`\`\`
 
 This will:
 1. Start the Docker container if not running
 2. Initialize authentication (first time only)
-3. Launch Claude Code with full permissions (sandboxed)
+3. Show an interactive menu to select your agent:
+   - **Claude Code** (Anthropic) - Surgical edits, multi-step tasks
+   - **Codex CLI** (OpenAI) - Fast, open-source
+
+Or launch a specific agent directly:
+
+\`\`\`bash
+./scripts/run-claude.sh $PROJECT_NAME  # Claude Code
+./scripts/run-codex.sh $PROJECT_NAME   # Codex CLI
+\`\`\`
 
 ### Runtime Configuration
 
@@ -183,7 +192,7 @@ erlang = "27"      # Required for Elixir
 elixir = "1.17"    # Change Elixir version
 \`\`\`
 
-After changing versions, mise will automatically install them when you next start Claude Code.
+After changing versions, mise will automatically install them when you next start an agent.
 
 ### Available Runtimes
 
@@ -195,17 +204,21 @@ Pre-configured in the Docker image:
 
 ### Security Notes
 
-- Claude Code runs with \`--dangerously-skip-permissions\` inside the container
+- Both agents run in autonomous mode (yolo/full-access) inside the container
 - The container is isolated from your host system
 - Only the \`projects/$PROJECT_NAME\` directory is accessible
 - Full internet access is available for package installation
 
 ### Useful Commands
 
-Inside Claude Code, you can use slash commands:
+**Inside Claude Code:**
 - \`/help\` - Show available commands
 - \`/login\` - Re-authenticate if needed
-- \`exit\` or \`Ctrl+D\` - Exit Claude Code session
+- \`exit\` or \`Ctrl+D\` - Exit session
+
+**Inside Codex CLI:**
+- \`codex login\` - Re-authenticate if needed
+- \`exit\` or \`Ctrl+D\` - Exit session
 
 ## Project Structure
 
@@ -218,14 +231,15 @@ $PROJECT_NAME/
 
 ## Next Steps
 
-1. Start Claude Code: \`./scripts/run-claude.sh $PROJECT_NAME\`
-2. Ask Claude to help you build your project!
+1. Start an agent: \`./scripts/run-agent.sh $PROJECT_NAME\`
+2. Ask the AI agent to help you build your project!
 3. All changes are automatically synced to your host machine
 
 ## Need Help?
 
 - mise documentation: https://mise.jdx.dev/
 - Claude Code documentation: https://docs.claude.com/claude-code
+- Codex CLI documentation: https://developers.openai.com/codex/cli
 - Docker documentation: https://docs.docker.com/
 EOF
 
@@ -237,7 +251,7 @@ echo -e "${GREEN}✓ README.md created${NC}"
 
 echo -e "${BLUE}→ Creating initial commit...${NC}"
 git add .
-git commit -m "Initial commit: Claude Code sandbox project" >/dev/null 2>&1 || true
+git commit -m "Initial commit: AI Agent Harness project" >/dev/null 2>&1 || true
 echo -e "${GREEN}✓ Initial commit created${NC}"
 
 # Return to root directory
@@ -255,7 +269,7 @@ echo ""
 echo -e "${BLUE}Location:${NC} $PROJECT_DIR"
 echo ""
 echo -e "${BLUE}To start working on your project:${NC}"
-echo -e "  ${GREEN}./scripts/run-claude.sh $PROJECT_NAME${NC}"
+echo -e "  ${GREEN}./scripts/run-agent.sh $PROJECT_NAME${NC}"
 echo ""
 echo -e "${BLUE}To customize runtimes:${NC}"
 echo -e "  Edit: ${GREEN}$PROJECT_DIR/.mise.toml${NC}"

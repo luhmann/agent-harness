@@ -1,15 +1,16 @@
-# Claude Code Docker Sandbox
+# AI Agent Harness
 
-A secure, hardened Docker environment for running Claude Code autonomously in "yolo mode" (full permissions) while maintaining isolation from your host system.
+A secure, hardened Docker environment for running AI coding agents (Claude Code & Codex CLI) autonomously in "yolo mode" (full permissions) while maintaining isolation from your host system.
 
 ## Features
 
-- **Isolated Sandbox**: Claude Code runs with full permissions inside a Docker container, keeping your host system safe
+- **Multi-Agent Support**: Choose between Claude Code (Anthropic) or Codex CLI (OpenAI) interchangeably
+- **Isolated Sandbox**: AI agents run with full permissions inside a Docker container, keeping your host system safe
 - **Mise Integration**: Flexible runtime management with per-project version control (Node.js, Python, Elixir, and more)
-- **Hybrid Authentication**: Login once, credentials persist across container restarts
+- **Hybrid Authentication**: Login once for each agent, credentials persist across container restarts
 - **Security Hardened**: Non-root user, dropped capabilities, resource limits, network isolation options
 - **Project Management**: Easy creation and management of multiple sandboxed projects
-- **Yolo Mode**: Claude Code runs with `--dangerously-skip-permissions` for autonomous operation
+- **Yolo Mode**: Both agents run in full autonomous mode (`--dangerously-skip-permissions` / `full-access`)
 
 ## Quick Start
 
@@ -17,7 +18,9 @@ A secure, hardened Docker environment for running Claude Code autonomously in "y
 
 - **Docker Desktop** (or Docker Engine + Docker Compose)
 - At least 4GB RAM available for Docker
-- Claude Code account (claude.ai or Claude Console API)
+- **At least one** of the following:
+  - Claude Code account (claude.ai or Claude Console API)
+  - ChatGPT Plus/Pro/Team/Enterprise account (for Codex CLI)
 
 ### 2. Clone or Create Project
 
@@ -37,31 +40,39 @@ This creates a new project in `./projects/my-first-project` with:
 - Git repository initialized
 - README with usage instructions
 
-### 4. Run Claude Code
+### 4. Run an AI Agent
 
 ```bash
-./scripts/run-claude.sh my-first-project
+./scripts/run-agent.sh my-first-project
 ```
 
-On first run, this will:
-1. Build the Docker image (takes 5-10 minutes)
+This will:
+1. Build the Docker image (takes 5-10 minutes on first run)
 2. Start the container
-3. Initialize authentication (copy from host or prompt for login)
-4. Launch Claude Code in yolo mode
+3. Initialize authentication for both agents
+4. Show an interactive menu to select your agent:
+   - **Claude Code** (Anthropic) - Surgical edits, multi-step tasks
+   - **Codex CLI** (OpenAI) - Fast, open-source, community-driven
+
+Or launch a specific agent directly:
+```bash
+./scripts/run-claude.sh my-first-project  # Claude Code
+./scripts/run-codex.sh my-first-project   # Codex CLI
+```
 
 ### 5. Start Building
 
-Once Claude Code launches, you're ready to go! Try asking:
+Once your chosen agent launches, you're ready to go! Try asking:
 
 > "Create a simple Express.js web server with a health check endpoint"
 
-Claude will autonomously write code, install dependencies, and run the project - all safely sandboxed.
+The AI agent will autonomously write code, install dependencies, and run the project - all safely sandboxed.
 
 ## Project Structure
 
 ```
-agent-harness-claude/
-├── Dockerfile                 # Multi-stage build with mise + Claude Code
+agent-harness/
+├── Dockerfile                 # Multi-stage build with mise + both agents
 ├── docker-compose.yml         # Service definition with security configs
 ├── .mise.toml.template       # Runtime version template
 ├── .env.example              # Environment configuration template
@@ -71,7 +82,9 @@ agent-harness-claude/
 │   ├── project-2/
 │   └── ...
 ├── scripts/
-│   ├── run-claude.sh        # Main entry point - start Claude Code
+│   ├── run-agent.sh         # Interactive agent selector (main entry)
+│   ├── run-claude.sh        # Direct Claude Code launcher
+│   ├── run-codex.sh         # Direct Codex CLI launcher
 │   ├── init-project.sh      # Create new project
 │   ├── attach.sh            # Direct shell access to container
 │   ├── cleanup.sh           # Stop/remove container and volumes
@@ -91,18 +104,32 @@ agent-harness-claude/
 ./scripts/init-project.sh my-api
 ```
 
-### Running Claude Code
+### Running an AI Agent
 
 ```bash
-# Run Claude Code for a specific project
-./scripts/run-claude.sh <project-name>
+# Interactive menu to select agent
+./scripts/run-agent.sh <project-name>
 
 # Example
-./scripts/run-claude.sh my-api
+./scripts/run-agent.sh my-api
+
+# Or launch a specific agent directly
+./scripts/run-claude.sh <project-name>  # Claude Code
+./scripts/run-codex.sh <project-name>   # Codex CLI
 
 # Run default project (sandbox)
-./scripts/run-claude.sh
+./scripts/run-agent.sh
 ```
+
+**Choosing Your Agent:**
+
+| Feature | Claude Code | Codex CLI |
+|---------|-------------|-----------|
+| Provider | Anthropic | OpenAI |
+| Auth | Claude.ai account | ChatGPT Plus/Pro/Team |
+| License | Proprietary | Open Source (Apache 2) |
+| Strengths | Surgical edits, multi-step tasks | Fast, simple tasks |
+| Mode | `--dangerously-skip-permissions` | `--approval full-access` |
 
 ### Managing Runtimes with Mise
 
@@ -120,7 +147,7 @@ elixir = "1.17"    # Elixir 1.17.x
 
 **Available runtimes**: node, python, erlang, elixir, go, rust, ruby, java, and [many more](https://mise.jdx.dev/lang/)
 
-**Apply changes**: Restart Claude Code - mise will automatically install new versions
+**Apply changes**: Restart your agent - mise will automatically install new versions
 
 ### Container Management
 
@@ -157,22 +184,27 @@ Restart container for changes to take effect.
 
 ### Hybrid Authentication Strategy
 
-This setup uses a "hybrid" authentication approach:
+This setup uses a "hybrid" authentication approach for **both agents**:
 
-1. **First Run**: If you have Claude Code installed on your host and are logged in, credentials are copied to the container automatically
-2. **Manual Login**: If no host credentials exist, you'll be prompted to login once inside Claude Code using `/login`
-3. **Persistence**: After successful login, credentials are stored in a Docker volume and persist across container restarts
+1. **First Run**: If you have the agent installed on your host and are logged in, credentials are copied to the container automatically
+2. **Manual Login**: If no host credentials exist, you'll be prompted to login once inside the agent
+3. **Persistence**: After successful login, credentials are stored in Docker volumes and persist across container restarts
 
 ### Logging In
 
-If you need to manually authenticate:
-
+**Claude Code:**
 1. When Claude Code starts, run: `/login`
 2. Choose your account type:
    - **Claude.ai** (recommended) - Use your Claude subscription
    - **Claude Console** - Use API credits
 3. Complete authentication in your browser
-4. Credentials are automatically saved
+4. Credentials saved in `claude-config` volume
+
+**Codex CLI:**
+1. When Codex CLI starts, run: `codex login`
+2. Authenticate with your **ChatGPT Plus/Pro/Team/Enterprise** account
+3. Complete OAuth flow in your browser
+4. Credentials saved in `codex-config` volume
 
 ### Switching Accounts
 
@@ -181,6 +213,9 @@ To switch accounts or re-authenticate:
 ```bash
 # Inside Claude Code
 /login
+
+# Inside Codex CLI
+codex login
 ```
 
 ## Security Model
@@ -197,7 +232,7 @@ To switch accounts or re-authenticate:
 
 ❌ **Internet access** - Container has full network access for package installation
 ❌ **Docker daemon** - Not mounted (preventing container escapes)
-❌ **Project files** - Claude has full read/write access to your project directory
+❌ **Project files** - AI agents have full read/write access to your project directory
 
 ### Security Features
 
@@ -207,15 +242,18 @@ To switch accounts or re-authenticate:
 - **No privilege escalation**: `no-new-privileges` security option enabled
 - **Read-only scripts**: Helper scripts mounted read-only
 
-### Yolo Mode Implications
+### Autonomous Mode Implications
 
-Claude Code runs with `--dangerously-skip-permissions`, meaning:
+Both agents run in autonomous mode:
+- **Claude Code**: `--dangerously-skip-permissions`
+- **Codex CLI**: `--approval full-access`
 
+This means:
 - **Instant execution**: No approval prompts for commands
-- **Full autonomy**: Claude can install packages, modify files, run servers
+- **Full autonomy**: Agents can install packages, modify files, run servers
 - **Sandboxed**: But everything happens inside the container
 
-**Recommendation**: Review what Claude is building periodically, especially before deploying code.
+**Recommendation**: Review what AI agents are building periodically, especially before deploying code.
 
 ## Advanced Topics
 
@@ -250,13 +288,16 @@ NODE_ENV = "development"
 Each project is isolated:
 
 ```bash
-# Terminal 1
+# Terminal 1 - Claude Code on project-a
 ./scripts/run-claude.sh project-a
 
-# Terminal 2
+# Terminal 2 - Codex CLI on project-b
+./scripts/run-codex.sh project-b
+
+# Or attach and launch manually
 ./scripts/attach.sh
 cd /workspace/project-b
-claude --dangerously-skip-permissions
+codex --approval full-access
 ```
 
 ### Debugging
@@ -273,7 +314,11 @@ mise list
 
 **Verify authentication**:
 ```bash
+# Claude Code
 cat ~/.claude/.credentials.json | jq .
+
+# Codex CLI
+cat ~/.codex/config.toml
 ```
 
 **Check container resources**:
@@ -312,21 +357,21 @@ networks:
 docker system prune -a
 
 # Rebuild
-./scripts/run-claude.sh
+./scripts/run-agent.sh
 ```
 
 ### Authentication Not Persisting
 
 **Issue**: Have to login every time
-**Solution**: Check volume is created correctly
+**Solution**: Check volumes are created correctly
 
 ```bash
-# Verify volume exists
-docker volume ls | grep claude-config
+# Verify volumes exist
+docker volume ls | grep -E "(claude|codex)-config"
 
 # If missing, recreate
 ./scripts/cleanup.sh --full
-./scripts/run-claude.sh
+./scripts/run-agent.sh
 ```
 
 ### Mise Can't Install Runtimes
@@ -356,7 +401,7 @@ echo "MEMORY_LIMIT=8g" >> .env
 
 # Restart
 ./scripts/cleanup.sh
-./scripts/run-claude.sh
+./scripts/run-agent.sh
 ```
 
 ### Permission Denied Errors
@@ -376,7 +421,13 @@ ls -la ./projects/
 ## FAQ
 
 **Q: How much does this cost?**
-A: The Docker setup is free. You need a Claude Code account (Claude.ai subscription or Claude Console API credits).
+A: The Docker setup is free. You need at least one of: Claude Code account (Claude.ai subscription or Claude Console API) OR ChatGPT Plus/Pro/Team account (for Codex CLI).
+
+**Q: Which agent should I use?**
+A: **Claude Code** excels at surgical edits and complex multi-step tasks. **Codex CLI** is faster for simple tasks and is open-source. Try both and see which fits your workflow!
+
+**Q: Can I use both agents on the same project?**
+A: Yes! You can switch between agents or even run them in parallel in different terminals on different projects.
 
 **Q: Can I use this in production?**
 A: This is designed for development/testing. For production, review security settings carefully and consider additional hardening.
@@ -384,14 +435,14 @@ A: This is designed for development/testing. For production, review security set
 **Q: Does this work on Windows?**
 A: Yes, with Docker Desktop for Windows. WSL2 is recommended for best performance.
 
-**Q: Can Claude access my other projects?**
+**Q: Can agents access my other projects?**
 A: No, only the specific project directory you're working in is mounted in the container.
 
-**Q: How do I update Claude Code?**
+**Q: How do I update the agents?**
 A: Rebuild the image:
 ```bash
 ./scripts/cleanup.sh --full
-./scripts/run-claude.sh
+./scripts/run-agent.sh
 ```
 
 **Q: Can I run this on a remote server?**
@@ -399,6 +450,9 @@ A: Yes, but you'll need to handle authentication differently (web-based login ma
 
 **Q: What if I need root access inside the container?**
 A: Use `docker exec -it --user root claude-agent-sandbox bash`, but understand this weakens security.
+
+**Q: Do I need accounts for both agents?**
+A: No, you only need an account for the agent(s) you want to use.
 
 ## Performance Tips
 
@@ -410,9 +464,11 @@ A: Use `docker exec -it --user root claude-agent-sandbox bash`, but understand t
 ## References
 
 - [Claude Code Documentation](https://docs.claude.com/claude-code)
+- [Claude Code GitHub](https://github.com/anthropics/claude-code)
+- [Codex CLI Documentation](https://developers.openai.com/codex/cli)
+- [Codex CLI GitHub](https://github.com/openai/codex)
 - [Mise Documentation](https://mise.jdx.dev/)
 - [Docker Security Best Practices](https://docs.docker.com/develop/security-best-practices/)
-- [Claude Code GitHub](https://github.com/anthropics/claude-code)
 
 ## Contributing
 
@@ -424,10 +480,12 @@ Found an issue or have an improvement? Feel free to:
 
 ## License
 
-This project structure is provided as-is for use with Claude Code. Refer to Claude Code's license for the actual CLI tool.
+This project structure is provided as-is for use with AI coding agents. Refer to each agent's license:
+- Claude Code: Proprietary (Anthropic)
+- Codex CLI: Apache 2.0 (OpenAI)
 
 ---
 
 **Happy autonomous coding!** 🚀
 
-Remember: Claude Code in yolo mode is powerful but sandboxed. Review generated code before deploying to production.
+Remember: AI agents in autonomous mode are powerful but sandboxed. Review generated code before deploying to production.

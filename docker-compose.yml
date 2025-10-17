@@ -1,5 +1,6 @@
-# Docker Compose configuration for Claude Code Sandbox
-# Provides secure, isolated environment for autonomous agent operation
+# Docker Compose configuration for AI Agent Harness
+# Provides secure, isolated environment for autonomous AI coding agents
+# Supports: Claude Code, Codex CLI
 
 services:
   claude-sandbox:
@@ -54,6 +55,9 @@ services:
       # Claude Code authentication and configuration (persistent)
       - claude-config:/home/claudedev/.claude
 
+      # Codex CLI authentication and configuration (persistent)
+      - codex-config:/home/claudedev/.codex
+
       # Mise cache for faster runtime installation (persistent)
       - mise-cache:/home/claudedev/.local/share/mise/cache
 
@@ -75,6 +79,10 @@ services:
       # Claude Code configuration
       - CLAUDE_CONFIG_DIR=/home/claudedev/.claude
 
+      # Codex CLI configuration
+      - CODEX_CONFIG_DIR=/home/claudedev/.codex
+      - CODEX_APPROVAL_MODE=${CODEX_APPROVAL_MODE:-full-access}
+
       # Terminal configuration
       - TERM=xterm-256color
 
@@ -90,7 +98,7 @@ services:
     working_dir: /workspace
 
     # Default command - just keep shell open
-    # Actual Claude Code launch is handled by run-claude.sh
+    # Actual agent launch is handled by run-agent.sh
     command: /bin/bash -c "tail -f /dev/null"
 
     # Restart policy (no automatic restart for dev environment)
@@ -107,6 +115,13 @@ volumes:
     driver: local
     labels:
       description: "Claude Code authentication and configuration"
+
+  # Stores Codex CLI authentication tokens and configuration
+  # Persists across container recreation
+  codex-config:
+    driver: local
+    labels:
+      description: "Codex CLI authentication and configuration"
 
   # Stores mise downloaded runtime binaries
   # Significantly speeds up subsequent runtime installations
