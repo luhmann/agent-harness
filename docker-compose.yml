@@ -65,6 +65,15 @@ services:
       - ./scripts:/scripts:ro
 
     # ========================================================================
+    # Host Network Access
+    # ========================================================================
+
+    # Allow container to connect to services running on host machine
+    # Use host.docker.internal:<port> to connect to host services
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # ========================================================================
     # Environment Variables
     # ========================================================================
 

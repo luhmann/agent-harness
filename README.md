@@ -300,6 +300,78 @@ cd /workspace/project-b
 codex --approval full-access
 ```
 
+### Connecting to Host Databases
+
+The container is configured to access databases and services running on your **host machine** using the special hostname `host.docker.internal`.
+
+#### Connection Examples
+
+**PostgreSQL on host:**
+```bash
+# Inside container (in your AI agent project)
+postgresql://username:password@host.docker.internal:5432/dbname
+```
+
+**MySQL on host:**
+```bash
+mysql://username:password@host.docker.internal:3306/dbname
+```
+
+**MongoDB on host:**
+```bash
+mongodb://username:password@host.docker.internal:27017/dbname
+```
+
+**Redis on host:**
+```bash
+redis://host.docker.internal:6379
+```
+
+**HTTP services on host:**
+```bash
+http://host.docker.internal:8080
+```
+
+#### Usage in Code
+
+**Node.js example:**
+```javascript
+const { Client } = require('pg');
+const client = new Client({
+  host: 'host.docker.internal',
+  port: 5432,
+  database: 'mydb',
+  user: 'myuser',
+  password: 'mypass'
+});
+```
+
+**Python example:**
+```python
+import psycopg2
+
+conn = psycopg2.connect(
+    host="host.docker.internal",
+    port=5432,
+    database="mydb",
+    user="myuser",
+    password="mypass"
+)
+```
+
+**Environment Variables:**
+
+Store connection strings in your project's `.mise.toml`:
+
+```toml
+[env]
+DATABASE_URL = "postgresql://user:pass@host.docker.internal:5432/mydb"
+REDIS_URL = "redis://host.docker.internal:6379"
+API_URL = "http://host.docker.internal:8080"
+```
+
+**Note**: Make sure your host database is configured to accept connections from Docker containers (typically listening on `0.0.0.0` or allowing connections from the Docker network).
+
 ### Debugging
 
 **Get shell access**:
@@ -437,6 +509,9 @@ A: Yes, with Docker Desktop for Windows. WSL2 is recommended for best performanc
 
 **Q: Can agents access my other projects?**
 A: No, only the specific project directory you're working in is mounted in the container.
+
+**Q: Can agents connect to databases on my host machine?**
+A: Yes! Use `host.docker.internal` as the hostname. For example: `postgresql://user:pass@host.docker.internal:5432/dbname`. See the "Connecting to Host Databases" section for details.
 
 **Q: How do I update the agents?**
 A: Rebuild the image:
